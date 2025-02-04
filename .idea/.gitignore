@@ -1,3 +1,10 @@
 # Default ignored files
 /shelf/
 /workspace.xml
+/compiler.xml
+/encodings.xml
+/git_toolbox_blame.xml
+/git_toolbox_prj.xml
+/jarRepositories.xml
+/misc.xml
+/vcs.xml
