@@ -4,34 +4,38 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class FileNameUtil {
-    public static final Map<Character, Character> CHARACTER_MAP = new HashMap<>();
+    private static final Map<Character, Character> CHARACTER_MAP = new HashMap<>();
+    private static final char DEFAULT_REPLACE_CHAR = '_';
+    public static final String DEFAULT_EXCLUDED = " &,.-_'";
 
     static {
-        CHARACTER_MAP.put(' ', '_');
-        CHARACTER_MAP.put('"', '_');
-        CHARACTER_MAP.put('#', '_');
-        CHARACTER_MAP.put('$', '_');
-        CHARACTER_MAP.put('!', '_');
-        CHARACTER_MAP.put('&', '_');
-        CHARACTER_MAP.put('%', '_');
-        CHARACTER_MAP.put('\'', '_');
-        CHARACTER_MAP.put('*', '_');
-        CHARACTER_MAP.put('+', '_');
+        CHARACTER_MAP.put(' ', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put('"', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put('#', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put('$', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put('!', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put('&', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put('%', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put('\'', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put('*', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put('+', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put('-', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put('_', DEFAULT_REPLACE_CHAR);
         CHARACTER_MAP.put(',', '.');
-        CHARACTER_MAP.put('/', '_');
-        CHARACTER_MAP.put(':', '.');
-        CHARACTER_MAP.put(';', '.');
-        CHARACTER_MAP.put('<', '_');
-        CHARACTER_MAP.put('=', '_');
-        CHARACTER_MAP.put('>', '_');
-        CHARACTER_MAP.put('?', '_');
-        CHARACTER_MAP.put('@', '_');
-        CHARACTER_MAP.put('\\', '_');
-        CHARACTER_MAP.put('^', '_');
-        CHARACTER_MAP.put('`', '_');
-        CHARACTER_MAP.put('|', '_');
-        CHARACTER_MAP.put('}', '_');
-        CHARACTER_MAP.put('~', '_');
+        CHARACTER_MAP.put('/', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put(':', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put(';', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put('<', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put('=', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put('>', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put('?', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put('@', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put('\\', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put('^', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put('`', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put('|', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put('}', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put('~', DEFAULT_REPLACE_CHAR);
         CHARACTER_MAP.put('ü', 'u');
         CHARACTER_MAP.put('é', 'e');
         CHARACTER_MAP.put('â', 'a');
@@ -71,16 +75,17 @@ public class FileNameUtil {
         CHARACTER_MAP.put('Ñ', 'N');
         CHARACTER_MAP.put('ª', 'a');
         CHARACTER_MAP.put('º', 'o');
-        CHARACTER_MAP.put('¿', '_');
+        CHARACTER_MAP.put('¿', DEFAULT_REPLACE_CHAR);
         CHARACTER_MAP.put('®', 'c');
-        CHARACTER_MAP.put('¡', '_');
-        CHARACTER_MAP.put('«', '_');
-        CHARACTER_MAP.put('»', '_');
+        CHARACTER_MAP.put('¡', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put('«', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put('»', DEFAULT_REPLACE_CHAR);
         CHARACTER_MAP.put('Á', 'A');
         CHARACTER_MAP.put('Â', 'A');
         CHARACTER_MAP.put('À', 'A');
         CHARACTER_MAP.put('©', 'C');
         CHARACTER_MAP.put('¢', 'c');
+        CHARACTER_MAP.put('Ç', 'C');
         CHARACTER_MAP.put('¥', 'Y');
         CHARACTER_MAP.put('ã', 'a');
         CHARACTER_MAP.put('Ã', 'A');
@@ -108,33 +113,50 @@ public class FileNameUtil {
         CHARACTER_MAP.put('Ù', 'U');
         CHARACTER_MAP.put('ý', 'y');
         CHARACTER_MAP.put('Ý', 'Y');
-        CHARACTER_MAP.put('¯', '_');
+        CHARACTER_MAP.put('¯', DEFAULT_REPLACE_CHAR);
         CHARACTER_MAP.put('´', '\'');
-        CHARACTER_MAP.put('≡', '_');
-        CHARACTER_MAP.put('±', '_');
-        CHARACTER_MAP.put('‗', '_');
-        CHARACTER_MAP.put('÷', '_');
-        CHARACTER_MAP.put('¸', '_');
-        CHARACTER_MAP.put('°', '_');
-        CHARACTER_MAP.put('¨', '_');
+        CHARACTER_MAP.put('≡', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put('±', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put('‗', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put('÷', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put('¸', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put('°', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put('¨', DEFAULT_REPLACE_CHAR);
         CHARACTER_MAP.put('·', '.');
         CHARACTER_MAP.put('¹', '1');
         CHARACTER_MAP.put('³', '3');
         CHARACTER_MAP.put('²', '2');
     }
 
-    public static String formatFileName(String fileName) {
+    public static String formatFileName(String fileName, String excludedChars, Character replaceChar) {
         String formatted = fileName;
         if (fileName != null && !fileName.isEmpty()) {
             for (int idx = 0; idx < fileName.length(); idx++) {
-                char ch = formatted.charAt(idx);
-                Character tmpChar = CHARACTER_MAP.get(ch);
-                if (tmpChar != null) {
-                    formatted = formatted.replace(ch, tmpChar);
+                char currentChar = formatted.charAt(idx);
+                if (!excludedChars.contains(currentChar + "")) {
+                    Character tmpChar = CHARACTER_MAP.get(currentChar);
+                    if (tmpChar != null) {
+                        if (tmpChar == DEFAULT_REPLACE_CHAR && replaceChar != null && replaceChar != DEFAULT_REPLACE_CHAR) {
+                            tmpChar = replaceChar;
+                        }
+                        if (tmpChar == Character.MIN_VALUE) {
+                            formatted = formatted.replace(currentChar + "", "");
+                        } else {
+                            formatted = formatted.replace(currentChar, tmpChar);
+                        }
+                    }
                 }
             }
         }
         return formatted;
+    }
+
+    public static String formatFileName(String fileName) {
+        return formatFileName(fileName, "", DEFAULT_REPLACE_CHAR);
+    }
+
+    public static String formatFileName(String fileName, String excludedChars) {
+        return formatFileName(fileName, excludedChars, DEFAULT_REPLACE_CHAR);
     }
 
     public static String getExtFromFileName(String fileName) {
