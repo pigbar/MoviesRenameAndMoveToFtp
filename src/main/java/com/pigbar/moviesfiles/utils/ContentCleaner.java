@@ -8,7 +8,7 @@ import java.util.Map;
 
 public class ContentCleaner {
     private static final Map<Character, Character> CHARACTER_MAP = new HashMap<>();
-    private static final char DEFAULT_REPLACE_CHAR = '_';
+    public static final char DEFAULT_REPLACE_CHAR = '_';
     public static final String DEFAULT_EXCLUDED = " &,.-_'";
 
     static {

@@ -3,6 +3,8 @@ package com.pigbar.moviesfiles.utils;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.pigbar.moviesfiles.utils.ContentCleaner.DEFAULT_REPLACE_CHAR;
+
 public class FileNameUtil {
     
     public static String formatFileName(String fileName, Character replaceChar) {
