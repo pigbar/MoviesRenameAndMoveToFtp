@@ -11,7 +11,7 @@ import static com.pigbar.moviesfiles.utils.ContentCleaner.DEFAULT_REPLACE_CHAR;
 public class FileNameUtil {
     
     public static String formatFileName(String fileName, Character replaceChar) {
-        return ContentCleaner.cleanContent(fileName, replaceChar);
+        return ContentCleaner.cleanContent(fileName, replaceChar, true);
     }
 
     public static String formatFileName(String fileName) {

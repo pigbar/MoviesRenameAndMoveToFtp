@@ -21,13 +21,18 @@ public class FtpUtil {
     private static final int BUFFER_SIZE = 1024 * 4;
     private static final Logger logger = Logger.getLogger(FtpUtil.class.getName());
     private static final int BASE_PERCENT = 10;
+    private static final String START_UPLOADING_FILE = ">> start uploading file from %s to %s";
+    private static final String UPLOADING_PERCENT = "--> uploading %s %s%%";
+    private static final String FILE_UPLOADED_SUCCESS = ">> file was uploaded successfully.";
+    private static final String FILE_RENAMED = "File/Directory renamed from %s to %s";
+    private static final String CANNOT_RENAME_FILE = "Cannot rename file/directory from %s to %s";
 
     public static boolean uploadFile(FTPClient ftpClient, String remotePath, File localFile) {
         boolean success = false;
         try {
             String remoteFile = remotePath + File.separator + localFile.getName();
             FileInputStream inputStream = new FileInputStream(localFile);
-            logger.info(">> start uploading file " + localFile.getName() + " to " + remotePath);
+            logger.info(String.format(START_UPLOADING_FILE, localFile.getName(), remotePath));
             OutputStream outputStream = ftpClient.storeFileStream(remoteFile);
             long fileSize = localFile.length();
             byte[] bytesIn = new byte[BUFFER_SIZE];
@@ -43,7 +48,7 @@ public class FtpUtil {
                 long diffTime = currentTime - timeStamp;
                 BigDecimal percent = BigDecimal.valueOf((float) totalRead / (float) fileSize * 100.f).setScale(2, RoundingMode.HALF_EVEN);
                 if ((diffTime < 0 || diffTime > maxDiffTime) && (percent.intValue() > 0 && percent.remainder(BigDecimal.valueOf(BASE_PERCENT)).intValue() == 0)) {
-                    logger.info(" --> uploading " + localFile + " " + percent + " %");
+                    logger.info(String.format(UPLOADING_PERCENT, localFile, percent));
                     timeStamp = System.currentTimeMillis();
                 }
                 currentTime = System.currentTimeMillis();
@@ -52,7 +57,7 @@ public class FtpUtil {
             outputStream.close();
             success = ftpClient.completePendingCommand();
             if (success) {
-                logger.info(">> file is uploaded successfully.");
+                logger.info(FILE_UPLOADED_SUCCESS);
             }
         } catch (IOException ex) {
             logger.severe("Error: " + ex.getMessage());
@@ -124,11 +129,9 @@ public class FtpUtil {
                             String newFileName = FileNameUtil.formatFileName(file.getName());
                             if (!newFileName.equalsIgnoreCase(file.getName())){
                                 if (ftpClient.rename(file.getName(), newFileName)){
-                                    logger.info("File renamed from " + file.getName()
-                                    + " to " + newFileName);
+                                    logger.info(String.format(FILE_RENAMED, file.getName(), newFileName));
                                 } else {
-                                    logger.info("Cannot rename File from " + file.getName()
-                                            + " to " + newFileName);
+                                    logger.info(String.format(CANNOT_RENAME_FILE, file.getName(), newFileName));
                                     return;
                                 }
                             }
@@ -137,14 +140,12 @@ public class FtpUtil {
                                     newFileName)){
                                 String parentPath = FileNameUtil.getParentPath(rootDir);
                                 if (ftpClient.rename(rootDir, parentPath + File.separator + newFileName)){
-                                    logger.info("Directory renamed from " + rootDir +
-                                            " to " + newFileName);
-                                    return;
+                                    logger.info(String.format(FILE_RENAMED, rootDir, newFileName));
                                 } else {
-                                    logger.info("Cannot rename directory from " + rootDir +
-                                            " to " + newFileName);
+                                    logger.info(String.format(CANNOT_RENAME_FILE, rootDir, newFileName));
                                 }
                             }
+                            return;
                         }
                     }
                 }

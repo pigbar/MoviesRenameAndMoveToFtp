@@ -29,20 +29,21 @@ public class FileHandler {
         moviesExt.add(".FLV");
     }
 
-    public void processDownloadedMovies() {
+    public void processDownloadedMovies(boolean overrideExistingFiles) {
         renameFilesInDirectory(DOWNLOAD_DIR);
-        moveFilesToRemoteFtp(HOST_NAME, DEFAULT_PORT, USER, PSW, DOWNLOAD_DIR, MOVIES_DIR);
+        moveFilesToRemoteFtp(HOST_NAME, DEFAULT_PORT, USER, PSW, DOWNLOAD_DIR, MOVIES_DIR, overrideExistingFiles);
     }
 
     public void processFtpFiles(){
         renameFilesInFtp(MOVIES_DIR, HOST_NAME, DEFAULT_PORT, USER, PSW);
     }
 
-    public void moveFilesToRemoteFtp(String hostName, int defaultPort, String user, String psw, String localDir, String remoteDir) {
+    public void moveFilesToRemoteFtp(String hostName, int defaultPort, String user, String psw, String localDir,
+                                     String remoteDir, boolean overrideExistingFiles) {
         FTPClient ftpClient = null;
         try {
             ftpClient = FtpUtil.getConnectedClient(hostName, defaultPort, user, psw);
-            moveFilesToRemoteFtp(ftpClient, localDir, remoteDir);
+            moveFilesToRemoteFtp(ftpClient, localDir, remoteDir, overrideExistingFiles);
         } catch (Exception ex) {
             logger.severe("Error: " + ex.getMessage());
             throw new RuntimeException("Error in getConnectedClient", ex);
@@ -58,7 +59,7 @@ public class FileHandler {
         }
     }
 
-    public void moveFilesToRemoteFtp(FTPClient ftpClient, String localDir, String remoteDir) {
+    public void moveFilesToRemoteFtp(FTPClient ftpClient, String localDir, String remoteDir, boolean overrideExistingFiles) {
         File rootDir = new File(localDir);
         if (rootDir.isDirectory()) {
             logger.info("Moving Dir : " + rootDir.getName());
@@ -76,8 +77,8 @@ public class FileHandler {
                         logger.severe("Error: " + ex.getMessage());
                         throw new RuntimeException("Error in existPath", ex);
                     }
-                } else {
-                    logger.info("Directory already exist, doing nothing");
+                } else if (!overrideExistingFiles){
+                    logger.info("Directory already exist, doing nothing : " + remoteDir);
                     return;
                 }
             }
@@ -86,8 +87,7 @@ public class FileHandler {
             for (File fileInDir : filesInDir) {
                 if (fileInDir.isDirectory()) {
                     moveFilesToRemoteFtp(ftpClient, fileInDir.getAbsolutePath(),
-                            remoteDir + File.separator + fileInDir.getName());
-                    fileInDir.delete();
+                            remoteDir + File.separator + fileInDir.getName(), overrideExistingFiles);
                 } else {
                     if (FtpUtil.uploadFile(ftpClient, remoteDir, fileInDir)) {
                         logger.info("    File moved to ftp : " + remoteDir + File.separator + fileInDir.getName());
@@ -95,7 +95,11 @@ public class FileHandler {
                         logger.severe("    Error moving file to ftp : " + remoteDir + File.separator +
                                 fileInDir.getName());
                     }
-                    fileInDir.delete();
+                }
+                if (fileInDir.delete()){
+                    logger.info("File/directory deleted : " + fileInDir.getName());
+                } else {
+                    logger.info("Cannot delete file//directory : " + fileInDir.getName());
                 }
             }
 
@@ -118,17 +122,16 @@ public class FileHandler {
                     String fileExt = FileNameUtil.getExtFromFileName(fileInDir.getName()).toUpperCase();
                     if (moviesExt.contains(fileExt)) {
                         logger.info("Processing file : " + fileInDir.getName());
-                        String newFileName = fileInDir.getParent() + File.separator + FileNameUtil.formatFileName(fileInDir.getName()
-                                .replace("_YTS.MX_", "[YTS.MX]")
-                                .replace("_YTS.AM_", "[YTS.AM]")
-                                .replace("_YTS.AG_", "[YTS.AG]"));
-                        newParentName = rootDir.getParent() + File.separator + FileNameUtil.getFileNameWithOutExt(FileNameUtil.formatFileName(fileInDir.getName()
-                                .replace("_YTS.MX_", "[YTS.MX]")
-                                .replace("_YTS.AM_", "[YTS.AM]")
-                                .replace("_YTS.AG_", "[YTS.AG]")));
-                        File newFile = new File(newFileName);
-                        if (fileInDir.renameTo(newFile)) {
-                            logger.info("file renamed to : " + newFile.getAbsolutePath());
+                        String frmtFileName = FileNameUtil.formatFileName(fileInDir.getName());
+                        String newFullFileName = fileInDir.getParent() + File.separator + frmtFileName;
+                        newParentName = rootDir.getParent() + File.separator + FileNameUtil.getFileNameWithOutExt(frmtFileName);
+                        if (!fileInDir.getName().equalsIgnoreCase(frmtFileName)) {
+                            File newFile = new File(newFullFileName);
+                            if (fileInDir.renameTo(newFile)) {
+                                logger.info("file renamed to : " + newFile.getAbsolutePath());
+                            } else {
+                                logger.info("Cannot rename file  : " + newFullFileName);
+                            }
                         }
                         break;
                     }
@@ -139,6 +142,8 @@ public class FileHandler {
                 File newDir = new File(newParentName);
                 if (rootDir.renameTo(newDir)) {
                     logger.info("Dir renamed to : " + rootDir.getAbsolutePath());
+                } else {
+                    logger.info("Cannot rename dir to : " + rootDir.getAbsolutePath());
                 }
             }
         } else {

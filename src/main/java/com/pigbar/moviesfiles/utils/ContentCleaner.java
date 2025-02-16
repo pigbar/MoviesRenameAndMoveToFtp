@@ -9,7 +9,7 @@ import java.util.Map;
 public class ContentCleaner {
     private static final Map<Character, Character> CHARACTER_MAP = new HashMap<>();
     public static final char DEFAULT_REPLACE_CHAR = '_';
-    public static final String DEFAULT_EXCLUDED = " &,.-_'";
+    public static final String DEFAULT_EXCLUDED = " &,.-_'()[]";
 
     static {
         CHARACTER_MAP.put(' ', DEFAULT_REPLACE_CHAR);
@@ -129,17 +129,17 @@ public class ContentCleaner {
         CHARACTER_MAP.put('¹', '1');
         CHARACTER_MAP.put('³', '3');
         CHARACTER_MAP.put('²', '2');
-        CHARACTER_MAP.put('[', '[');
-        CHARACTER_MAP.put(']', ']');
-        CHARACTER_MAP.put('(', '(');
-        CHARACTER_MAP.put(')', ')');
+        CHARACTER_MAP.put('(', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put(')', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put('[', DEFAULT_REPLACE_CHAR);
+        CHARACTER_MAP.put(']', DEFAULT_REPLACE_CHAR);
     }
 
-    public static String cleanContent(String content) {
-        return cleanContent(content, DEFAULT_REPLACE_CHAR);
+    public static String cleanContent(String content, boolean keepSrc) {
+        return cleanContent(content, DEFAULT_REPLACE_CHAR, true);
     }
 
-    public static String cleanContent(String content, char replaceChar) {
+    public static String cleanContent(String content, char replaceChar, boolean keepSrc) {
         if (StringUtils.isEmpty(content)) {
             return content;
         }
@@ -153,7 +153,8 @@ public class ContentCleaner {
             } else if (Character.isLetterOrDigit(keyChar) || Character.isWhitespace(keyChar) || DEFAULT_EXCLUDED.contains(keyChar + "")) {
                 cleaned.append(keyChar);
             } else {
-                cleaned.append(replaceChar);
+                if (!keepSrc)
+                    cleaned.append(replaceChar);
             }
         }
 
