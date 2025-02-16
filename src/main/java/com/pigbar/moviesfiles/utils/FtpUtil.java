@@ -1,5 +1,6 @@
 package com.pigbar.moviesfiles.utils;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
@@ -12,6 +13,8 @@ import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.file.Files;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 public class FtpUtil {
@@ -107,5 +110,47 @@ public class FtpUtil {
             throw new RuntimeException("Error downloading file", ex);
         }
         return success;
+    }
+
+    public static void checkAndRenameFtpFilesInRootDir(String rootDir, List<String> filesExts, FTPClient ftpClient){
+        if (isExistPath(rootDir, ftpClient)){
+            try {
+                for (FTPFile file : ftpClient.listFiles()){
+                    if (file.isDirectory()){
+                        checkAndRenameFtpFilesInRootDir(rootDir + File.separator + file.getName(), filesExts, ftpClient);
+                    } else {
+                        String extension = FileNameUtil.getExtFromFileName(file.getName());
+                        if (filesExts.contains(extension.toUpperCase())){
+                            String newFileName = FileNameUtil.formatFileName(file.getName());
+                            if (!newFileName.equalsIgnoreCase(file.getName())){
+                                if (ftpClient.rename(file.getName(), newFileName)){
+                                    logger.info("File renamed from " + file.getName()
+                                    + " to " + newFileName);
+                                } else {
+                                    logger.info("Cannot rename File from " + file.getName()
+                                            + " to " + newFileName);
+                                    return;
+                                }
+                            }
+                            newFileName = FileNameUtil.getFileNameWithOutExt(newFileName);
+                            if (!FileNameUtil.getLastMemberFromPath(rootDir).equalsIgnoreCase(
+                                    newFileName)){
+                                String parentPath = FileNameUtil.getParentPath(rootDir);
+                                if (ftpClient.rename(rootDir, parentPath + File.separator + newFileName)){
+                                    logger.info("Directory renamed from " + rootDir +
+                                            " to " + newFileName);
+                                    return;
+                                } else {
+                                    logger.info("Cannot rename directory from " + rootDir +
+                                            " to " + newFileName);
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 }

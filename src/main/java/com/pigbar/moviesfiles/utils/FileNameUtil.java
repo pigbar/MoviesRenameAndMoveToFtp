@@ -1,5 +1,8 @@
 package com.pigbar.moviesfiles.utils;
 
+import org.apache.commons.lang3.StringUtils;
+
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -17,7 +20,7 @@ public class FileNameUtil {
     
     public static String getExtFromFileName(String fileName) {
         String ext = "";
-        if (fileName != null && !fileName.isEmpty()) {
+        if (StringUtils.isNoneEmpty(fileName)) {
             int idx = fileName.lastIndexOf('.');
             if (idx > 0) {
                 ext = fileName.substring(idx);
@@ -28,10 +31,38 @@ public class FileNameUtil {
 
     public static String getFileNameWithOutExt(String fileName) {
         String resp = fileName;
-        if (fileName != null && !fileName.isEmpty()) {
+        if (StringUtils.isNoneEmpty(fileName)) {
             int idx = fileName.lastIndexOf('.');
             if (idx > 0) {
                 resp = fileName.substring(0, idx);
+            }
+        }
+        return resp;
+    }
+
+    public static String getLastMemberFromPath(String path){
+        String resp = path;
+        if (StringUtils.isNoneEmpty(resp)) {
+            while (resp.endsWith(File.separator)){
+                resp = resp.substring(resp.length()-1);
+            }
+            int idx = resp.lastIndexOf(File.separator);
+            if (idx > 0) {
+                resp = resp.substring(idx + 1);
+            }
+        }
+        return resp;
+    }
+
+    public static String getParentPath(String path){
+        String resp = path;
+        if (StringUtils.isNoneEmpty(resp)) {
+            while (resp.endsWith(File.separator)){
+                resp = resp.substring(resp.length()-1);
+            }
+            int idx = resp.lastIndexOf(File.separator);
+            if (idx > 0) {
+                resp = resp.substring(0, idx);
             }
         }
         return resp;

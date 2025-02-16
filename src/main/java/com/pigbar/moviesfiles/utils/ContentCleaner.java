@@ -129,6 +129,10 @@ public class ContentCleaner {
         CHARACTER_MAP.put('¹', '1');
         CHARACTER_MAP.put('³', '3');
         CHARACTER_MAP.put('²', '2');
+        CHARACTER_MAP.put('[', '[');
+        CHARACTER_MAP.put(']', ']');
+        CHARACTER_MAP.put('(', '(');
+        CHARACTER_MAP.put(')', ')');
     }
 
     public static String cleanContent(String content) {

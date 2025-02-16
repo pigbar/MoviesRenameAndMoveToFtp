@@ -34,6 +34,10 @@ public class FileHandler {
         moveFilesToRemoteFtp(HOST_NAME, DEFAULT_PORT, USER, PSW, DOWNLOAD_DIR, MOVIES_DIR);
     }
 
+    public void processFtpFiles(){
+        renameFilesInFtp(MOVIES_DIR, HOST_NAME, DEFAULT_PORT, USER, PSW);
+    }
+
     public void moveFilesToRemoteFtp(String hostName, int defaultPort, String user, String psw, String localDir, String remoteDir) {
         FTPClient ftpClient = null;
         try {
@@ -114,8 +118,14 @@ public class FileHandler {
                     String fileExt = FileNameUtil.getExtFromFileName(fileInDir.getName()).toUpperCase();
                     if (moviesExt.contains(fileExt)) {
                         logger.info("Processing file : " + fileInDir.getName());
-                        String newFileName = fileInDir.getParent() + File.separator + FileNameUtil.formatFileName(fileInDir.getName());
-                        newParentName = rootDir.getParent() + File.separator + FileNameUtil.getFileNameWithOutExt(FileNameUtil.formatFileName(fileInDir.getName()));
+                        String newFileName = fileInDir.getParent() + File.separator + FileNameUtil.formatFileName(fileInDir.getName()
+                                .replace("_YTS.MX_", "[YTS.MX]")
+                                .replace("_YTS.AM_", "[YTS.AM]")
+                                .replace("_YTS.AG_", "[YTS.AG]"));
+                        newParentName = rootDir.getParent() + File.separator + FileNameUtil.getFileNameWithOutExt(FileNameUtil.formatFileName(fileInDir.getName()
+                                .replace("_YTS.MX_", "[YTS.MX]")
+                                .replace("_YTS.AM_", "[YTS.AM]")
+                                .replace("_YTS.AG_", "[YTS.AG]")));
                         File newFile = new File(newFileName);
                         if (fileInDir.renameTo(newFile)) {
                             logger.info("file renamed to : " + newFile.getAbsolutePath());
@@ -133,6 +143,26 @@ public class FileHandler {
             }
         } else {
             throw new RuntimeException("Not valid root dir");
+        }
+    }
+
+    public void renameFilesInFtp(String rootPath, String hostName, int defaultPort, String user, String psw){
+        FTPClient ftpClient = null;
+        try {
+            ftpClient = FtpUtil.getConnectedClient(hostName, defaultPort, user, psw);
+            FtpUtil.checkAndRenameFtpFilesInRootDir(rootPath, moviesExt, ftpClient);
+        } catch (Exception ex) {
+            logger.severe("Error: " + ex.getMessage());
+            throw new RuntimeException("Error in renameFilesInFtp", ex);
+        } finally {
+            if (ftpClient != null && ftpClient.isConnected()) {
+                try {
+                    ftpClient.quit();
+                    ftpClient.disconnect();
+                } catch (IOException ex) {
+                    logger.severe("Error: " + ex.getMessage());
+                }
+            }
         }
     }
 }
