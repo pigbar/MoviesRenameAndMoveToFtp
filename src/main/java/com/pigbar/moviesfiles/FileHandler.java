@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.logging.Logger;
 
 public class FileHandler {
-    public final static String MOVIES_DIR = "/sda2/data/Movies";
+    public final static String MOVIES_DIR = "/sdb2/data/Movies";
     public final static String USER = "anonymous";
     public final static String PSW = "";
     public final static String HOST_NAME = "192.168.50.1";
