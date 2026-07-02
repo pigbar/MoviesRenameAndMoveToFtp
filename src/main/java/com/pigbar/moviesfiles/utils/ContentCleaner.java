@@ -136,7 +136,7 @@ public class ContentCleaner {
     }
 
     public static String cleanContent(String content, boolean keepSrc) {
-        return cleanContent(content, DEFAULT_REPLACE_CHAR, true);
+        return cleanContent(content, DEFAULT_REPLACE_CHAR, keepSrc);
     }
 
     public static String cleanContent(String content, char replaceChar, boolean keepSrc) {

@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.logging.Logger;
 
 public class FileHandler {
-    public final static String MOVIES_DIR = "/sdb2/data/Movies";
+    public final static String MOVIES_DIR = "/sda2/data/Movies";
     public final static String USER = "anonymous";
     public final static String PSW = "";
     public final static String HOST_NAME = "192.168.50.1";
@@ -85,6 +85,7 @@ public class FileHandler {
             File[] filesInDir = rootDir.listFiles();
             assert filesInDir != null;
             for (File fileInDir : filesInDir) {
+                boolean canDelete = true;
                 if (fileInDir.isDirectory()) {
                     moveFilesToRemoteFtp(ftpClient, fileInDir.getAbsolutePath(),
                             remoteDir + File.separator + fileInDir.getName(), overrideExistingFiles);
@@ -94,9 +95,12 @@ public class FileHandler {
                     } else {
                         logger.severe("    Error moving file to ftp : " + remoteDir + File.separator +
                                 fileInDir.getName());
+                        canDelete = false;
                     }
                 }
-                if (fileInDir.delete()){
+                if (!canDelete) {
+                    logger.info("Keeping local file (upload failed) : " + fileInDir.getName());
+                } else if (fileInDir.delete()){
                     logger.info("File/directory deleted : " + fileInDir.getName());
                 } else {
                     logger.info("Cannot delete file//directory : " + fileInDir.getName());

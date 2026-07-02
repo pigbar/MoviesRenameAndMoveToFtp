@@ -44,7 +44,7 @@ public class FileNameUtil {
         String resp = path;
         if (StringUtils.isNoneEmpty(resp)) {
             while (resp.endsWith(File.separator)){
-                resp = resp.substring(resp.length()-1);
+                resp = resp.substring(0, resp.length()-1);
             }
             int idx = resp.lastIndexOf(File.separator);
             if (idx > 0) {
@@ -58,7 +58,7 @@ public class FileNameUtil {
         String resp = path;
         if (StringUtils.isNoneEmpty(resp)) {
             while (resp.endsWith(File.separator)){
-                resp = resp.substring(resp.length()-1);
+                resp = resp.substring(0, resp.length()-1);
             }
             int idx = resp.lastIndexOf(File.separator);
             if (idx > 0) {
