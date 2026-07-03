@@ -9,7 +9,7 @@ import junit.framework.TestSuite;
 import java.io.File;
 
 /**
- * Unit tests for the pure name/path utilities used by the movie rename+move flow.
+ * Unit tests for the name/path utilities used by the movie rename+move flow.
  */
 public class AppMoveFileToFtpTest
         extends TestCase {
@@ -28,7 +28,7 @@ public class AppMoveFileToFtpTest
 
     public void testGetExtFromFileName() {
         assertEquals(".mp4", FileNameUtil.getExtFromFileName("movie.1998.mp4"));
-        assertEquals(".edition", FileNameUtil.getExtFromFileName("a.b.edition"));
+        assertEquals(".srt", FileNameUtil.getExtFromFileName("a.fre.srt"));
         assertEquals("", FileNameUtil.getExtFromFileName("noextension"));
     }
 
@@ -40,50 +40,99 @@ public class AppMoveFileToFtpTest
     // --- FileNameUtil: path member / parent, including the trailing-separator fix ---
 
     public void testGetLastMemberFromPath() {
-        String path = SEP + "home" + SEP + "pigbar" + SEP + "movie";
-        assertEquals("movie", FileNameUtil.getLastMemberFromPath(path));
+        assertEquals("movie", FileNameUtil.getLastMemberFromPath(SEP + "home" + SEP + "pigbar" + SEP + "movie"));
     }
 
     public void testGetLastMemberFromPathTrailingSeparator() {
-        String path = SEP + "home" + SEP + "pigbar" + SEP + "movie" + SEP;
-        assertEquals("movie", FileNameUtil.getLastMemberFromPath(path));
+        assertEquals("movie", FileNameUtil.getLastMemberFromPath(SEP + "home" + SEP + "pigbar" + SEP + "movie" + SEP));
     }
 
     public void testGetParentPath() {
-        String path = SEP + "home" + SEP + "pigbar" + SEP + "movie";
-        assertEquals(SEP + "home" + SEP + "pigbar", FileNameUtil.getParentPath(path));
+        assertEquals(SEP + "home" + SEP + "pigbar",
+                FileNameUtil.getParentPath(SEP + "home" + SEP + "pigbar" + SEP + "movie"));
     }
 
     public void testGetParentPathTrailingSeparator() {
-        String path = SEP + "home" + SEP + "pigbar" + SEP + "movie" + SEP;
-        assertEquals(SEP + "home" + SEP + "pigbar", FileNameUtil.getParentPath(path));
+        assertEquals(SEP + "home" + SEP + "pigbar",
+                FileNameUtil.getParentPath(SEP + "home" + SEP + "pigbar" + SEP + "movie" + SEP));
     }
 
-    // --- ContentCleaner ---
+    // --- FileNameUtil.formatFileName: extension-aware sanitising ---
 
-    public void testCleanContentStripsDiacritics() {
-        assertEquals("Amelie", ContentCleaner.cleanContent("Amélie", true));
+    /** The subtitle name that crashed the FTP upload is now ASCII-safe. */
+    public void testFormatFileNameAccentedSubtitle() {
+        assertEquals("Francais.(Canada).(forced).fre.srt",
+                FileNameUtil.formatFileName("Français (Canada) (forced).fre.srt"));
     }
 
-    public void testCleanContentMapsPunctuationToUnderscore() {
-        assertEquals("hi_", ContentCleaner.cleanContent("hi!", true));
+    /** An already-clean YTS movie name is left untouched. */
+    public void testFormatFileNameCleanMovieUnchanged() {
+        String name = "Nosferatu.2024.1080p.WEBRip.x265.10bit.AAC5.1-[YTS.MX].mp4";
+        assertEquals(name, FileNameUtil.formatFileName(name));
     }
 
-    public void testCleanContentKeepsExcludedChars() {
-        assertEquals("(ytx)", ContentCleaner.cleanContent("(ytx)", true));
+    /** Spaces inside the name become dots; the extension is preserved. */
+    public void testFormatFileNameSpacesToDots() {
+        assertEquals("Obsession.2025.1080p.WEBRip.x265.10bit.AAC5.1-[YTS.GG.-.YTS.BZ].mp4",
+                FileNameUtil.formatFileName("Obsession.2025.1080p.WEBRip.x265.10bit.AAC5.1-[YTS.GG - YTS.BZ].mp4"));
     }
 
-    /** keepSrc=true drops an unmapped "other" character. */
-    public void testCleanContentKeepSrcDropsUnknown() {
-        assertEquals("ab", ContentCleaner.cleanContent("a{b", true));
+    /** Known limitation: a wholly non-Latin base cannot be transliterated, so it is kept as-is. */
+    public void testFormatFileNameNonLatinFallback() {
+        assertEquals("日本語.mp4", FileNameUtil.formatFileName("日本語.mp4"));
     }
 
-    /**
-     * keepSrc=false replaces an unmapped "other" character with the default replace char.
-     * Guards the fix where the 2-arg overload previously ignored keepSrc and always
-     * behaved as keepSrc=true.
-     */
-    public void testCleanContentKeepSrcFalseReplacesUnknown() {
-        assertEquals("a_b", ContentCleaner.cleanContent("a{b", false));
+    // --- ContentCleaner: ASCII-safe sanitising ---
+
+    public void testStripsDiacritics() {
+        assertEquals("Zoe.cafe.resume", ContentCleaner.cleanContent("Zoë café résumé"));
+    }
+
+    public void testTransliteratesNonDecomposableLetters() {
+        assertEquals("movie.ocean.aeon.sseta", ContentCleaner.cleanContent("møvie øcean æon ßeta"));
+    }
+
+    public void testTypographicPunctuation() {
+        assertEquals("naive-dash.ellipsis", ContentCleaner.cleanContent("naïve—dash…ellipsis"));
+    }
+
+    public void testSeparatorsCollapseAndTrim() {
+        assertEquals("Dont.Look.Up", ContentCleaner.cleanContent("Don't  Look   Up!"));
+        assertEquals("", ContentCleaner.cleanContent("   ---___...   "));
+    }
+
+    public void testColonBecomesSeparator() {
+        assertEquals("Mission.Impossible", ContentCleaner.cleanContent("Mission: Impossible"));
+    }
+
+    public void testKeepsStructuralPunctuation() {
+        assertEquals("English.(GB).[Forced]", ContentCleaner.cleanContent("English (GB) [Forced]"));
+    }
+
+    public void testDropsNonLatinLettersKeepingAscii() {
+        assertEquals("2024", ContentCleaner.cleanContent("Москва 2024"));
+        assertEquals("", ContentCleaner.cleanContent("日本語"));
+    }
+
+    public void testDropsEmoji() {
+        assertEquals("movie", ContentCleaner.cleanContent("🎬 movie 🍿"));
+    }
+
+    /** Output is always ASCII-only for a representative mix of scripts and symbols. */
+    public void testOutputIsAlwaysAscii() {
+        String[] inputs = {
+                "Français (Canada).srt", "Zoë—café", "Москва", "日本語 映画",
+                "møvie ßeta", "🎬 x 🍿", "a!!!b:::c"
+        };
+        for (String in : inputs) {
+            String out = ContentCleaner.cleanContent(in);
+            assertTrue("non-ASCII in output for [" + in + "] -> [" + out + "]",
+                    out.chars().allMatch(c -> c < 128));
+        }
+    }
+
+    public void testEmptyAndNull() {
+        assertEquals("", ContentCleaner.cleanContent(""));
+        assertNull(ContentCleaner.cleanContent(null));
     }
 }

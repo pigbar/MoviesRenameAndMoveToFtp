@@ -1,5 +1,6 @@
 package com.pigbar.moviesfiles;
 
+import com.pigbar.moviesfiles.utils.ContentCleaner;
 import com.pigbar.moviesfiles.utils.FileNameUtil;
 import com.pigbar.moviesfiles.utils.FtpUtil;
 import org.apache.commons.net.ftp.FTPClient;
@@ -114,44 +115,57 @@ public class FileHandler {
 
     public void renameFilesInDirectory(String directory) {
         File rootDir = new File(directory);
-        if (rootDir.isDirectory()) {
-            logger.info("Processing Dir : " + rootDir.getName());
-            File[] filesInDir = rootDir.listFiles();
-            assert filesInDir != null;
-            String newParentName = null;
-            for (File fileInDir : filesInDir) {
-                if (fileInDir.isDirectory()) {
-                    renameFilesInDirectory(fileInDir.getAbsolutePath());
-                } else {
-                    String fileExt = FileNameUtil.getExtFromFileName(fileInDir.getName()).toUpperCase();
-                    if (moviesExt.contains(fileExt)) {
-                        logger.info("Processing file : " + fileInDir.getName());
-                        String frmtFileName = FileNameUtil.formatFileName(fileInDir.getName());
-                        String newFullFileName = fileInDir.getParent() + File.separator + frmtFileName;
-                        newParentName = rootDir.getParent() + File.separator + FileNameUtil.getFileNameWithOutExt(frmtFileName);
-                        if (!fileInDir.getName().equalsIgnoreCase(frmtFileName)) {
-                            File newFile = new File(newFullFileName);
-                            if (fileInDir.renameTo(newFile)) {
-                                logger.info("file renamed to : " + newFile.getAbsolutePath());
-                            } else {
-                                logger.info("Cannot rename file  : " + newFullFileName);
-                            }
-                        }
-                        break;
-                    }
-                }
-            }
-            if (newParentName != null && !rootDir.getAbsolutePath().equalsIgnoreCase(DOWNLOAD_DIR) &&
-                    !newParentName.equalsIgnoreCase(rootDir.getAbsolutePath())) {
-                File newDir = new File(newParentName);
-                if (rootDir.renameTo(newDir)) {
-                    logger.info("Dir renamed to : " + rootDir.getAbsolutePath());
-                } else {
-                    logger.info("Cannot rename dir to : " + rootDir.getAbsolutePath());
-                }
-            }
-        } else {
+        if (!rootDir.isDirectory()) {
             throw new RuntimeException("Not valid root dir");
+        }
+        logger.info("Processing Dir : " + rootDir.getName());
+        File[] filesInDir = rootDir.listFiles();
+        if (filesInDir == null) {
+            return;
+        }
+        String movieBaseName = null; // formatted basename of the first movie file found
+        for (File fileInDir : filesInDir) {
+            if (fileInDir.isDirectory()) {
+                renameFilesInDirectory(fileInDir.getAbsolutePath());
+                continue;
+            }
+            String originalName = fileInDir.getName();
+            String frmtFileName = FileNameUtil.formatFileName(originalName);
+            String fileExt = FileNameUtil.getExtFromFileName(originalName).toUpperCase();
+            if (movieBaseName == null && moviesExt.contains(fileExt)) {
+                movieBaseName = FileNameUtil.getFileNameWithOutExt(frmtFileName);
+            }
+            // Rename every file (not only movies) so no special character reaches the FTP.
+            if (!originalName.equals(frmtFileName)) {
+                logger.info("Processing file : " + originalName);
+                File newFile = new File(fileInDir.getParent() + File.separator + frmtFileName);
+                if (fileInDir.renameTo(newFile)) {
+                    logger.info("file renamed to : " + newFile.getAbsolutePath());
+                } else {
+                    logger.info("Cannot rename file : " + newFile.getAbsolutePath());
+                }
+            }
+        }
+        // Rename the directory itself: to the movie basename when a movie is present
+        // (Plex convention), otherwise to a sanitised version of its own name so that
+        // no non-ASCII folder name reaches the FTP. The top download dir is never renamed.
+        if (rootDir.getAbsolutePath().equalsIgnoreCase(DOWNLOAD_DIR)) {
+            return;
+        }
+        String newDirName = (movieBaseName != null && !movieBaseName.isEmpty())
+                ? movieBaseName
+                : ContentCleaner.cleanContent(rootDir.getName());
+        if (newDirName == null || newDirName.isEmpty()) {
+            return;
+        }
+        String newDirPath = rootDir.getParent() + File.separator + newDirName;
+        if (!newDirPath.equals(rootDir.getAbsolutePath())) {
+            File newDir = new File(newDirPath);
+            if (rootDir.renameTo(newDir)) {
+                logger.info("Dir renamed to : " + newDir.getAbsolutePath());
+            } else {
+                logger.info("Cannot rename dir to : " + newDir.getAbsolutePath());
+            }
         }
     }
 

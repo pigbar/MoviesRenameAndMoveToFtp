@@ -3,21 +3,33 @@ package com.pigbar.moviesfiles.utils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
-
-import static com.pigbar.moviesfiles.utils.ContentCleaner.DEFAULT_REPLACE_CHAR;
 
 public class FileNameUtil {
-    
-    public static String formatFileName(String fileName, Character replaceChar) {
-        return ContentCleaner.cleanContent(fileName, replaceChar, true);
+
+    /**
+     * Sanitise a file name to an ASCII-safe, Plex-friendly form. The extension is
+     * split off first and cleaned separately so the extension dot is never merged
+     * or trimmed by the separator collapsing in {@link ContentCleaner}.
+     */
+    public static String formatFileName(String fileName) {
+        if (StringUtils.isEmpty(fileName)) {
+            return fileName;
+        }
+        String ext = getExtFromFileName(fileName);       // ".srt" or ""
+        String base = getFileNameWithOutExt(fileName);   // name without the last extension
+        String cleanBase = ContentCleaner.cleanContent(base);
+        if (StringUtils.isEmpty(cleanBase)) {
+            // Nothing survived (e.g. a wholly non-Latin name): keep the original base
+            // rather than reduce the file to just its extension.
+            cleanBase = base;
+        }
+        if (StringUtils.isEmpty(ext)) {
+            return cleanBase;
+        }
+        String cleanExt = ContentCleaner.cleanContent(ext.substring(1));
+        return StringUtils.isEmpty(cleanExt) ? cleanBase : cleanBase + "." + cleanExt;
     }
 
-    public static String formatFileName(String fileName) {
-        return formatFileName(fileName, DEFAULT_REPLACE_CHAR);
-    }
-    
     public static String getExtFromFileName(String fileName) {
         String ext = "";
         if (StringUtils.isNoneEmpty(fileName)) {
