@@ -34,6 +34,12 @@ public class FtpUtil {
             FileInputStream inputStream = new FileInputStream(localFile);
             logger.info(String.format(START_UPLOADING_FILE, localFile.getName(), remotePath));
             OutputStream outputStream = ftpClient.storeFileStream(remoteFile);
+            if (outputStream == null) {
+                inputStream.close();
+                logger.severe(String.format("Cannot open remote file for writing (reply %d: %s): %s",
+                        ftpClient.getReplyCode(), ftpClient.getReplyString().trim(), remoteFile));
+                return false;
+            }
             long fileSize = localFile.length();
             byte[] bytesIn = new byte[BUFFER_SIZE];
             int bytesRead = 0;
@@ -70,6 +76,10 @@ public class FtpUtil {
         FTPClient ftp = new FTPClient();
         try {
             int reply;
+            // Send/receive path names as UTF-8 so non-ASCII file names (e.g. accents
+            // in subtitle files) are accepted by the server. Must be set before connect.
+            ftp.setControlEncoding("UTF-8");
+            ftp.setAutodetectUTF8(true);
             ftp.connect(url);//connect to FTP server
             ftp.login(user, psw);
             reply = ftp.getReplyCode();
@@ -77,6 +87,8 @@ public class FtpUtil {
                 ftp.disconnect();
                 throw new RuntimeException("Cannot get valid FtpClient");
             }
+            // Ask the server to switch to UTF-8 path handling (harmless if unsupported).
+            ftp.sendCommand("OPTS UTF8 ON");
             ftp.enterLocalPassiveMode();
             ftp.setFileTransferMode(FTP.STREAM_TRANSFER_MODE);
             ftp.setFileType(FTP.BINARY_FILE_TYPE);
