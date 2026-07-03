@@ -99,6 +99,34 @@ public class FtpUtil {
         }
     }
 
+    /**
+     * Resolve the real remote directory for {@code subPath} (e.g. "data/Movies").
+     * The router shares each USB partition under a device-named root that can change
+     * between reboots or re-enumerations (/sda2, /sdb2, ...). This lists the FTP root
+     * and returns "/&lt;mount&gt;/&lt;subPath&gt;" for the first mount whose first path
+     * segment exists, falling back to {@code fallback} when nothing matches.
+     */
+    public static String resolveRemoteBase(FTPClient ftpClient, String subPath, String fallback) {
+        String firstSegment = subPath.split("/")[0]; // e.g. "data"
+        try {
+            FTPFile[] roots = ftpClient.listFiles("/");
+            for (FTPFile entry : roots) {
+                if (entry == null || !entry.isDirectory()) {
+                    continue;
+                }
+                String candidate = "/" + entry.getName() + "/" + firstSegment;
+                if (ftpClient.changeWorkingDirectory(candidate)) {
+                    ftpClient.changeWorkingDirectory("/");
+                    return "/" + entry.getName() + "/" + subPath;
+                }
+            }
+            ftpClient.changeWorkingDirectory("/");
+        } catch (IOException ex) {
+            logger.severe("Error resolving remote base: " + ex.getMessage());
+        }
+        return fallback;
+    }
+
     public static boolean isExistPath(String workingPath, FTPClient ftpClient) {
         try {
             return ftpClient.changeWorkingDirectory(workingPath);

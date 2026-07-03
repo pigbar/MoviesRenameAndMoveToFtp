@@ -13,6 +13,8 @@ import java.util.logging.Logger;
 
 public class FileHandler {
     public final static String MOVIES_DIR = "/sda2/data/Movies";
+    // Stable part of the remote path; the "/sdaX" mount prefix is resolved at runtime.
+    public final static String MOVIES_SUBPATH = "data/Movies";
     public final static String USER = "anonymous";
     public final static String PSW = "";
     public final static String HOST_NAME = "192.168.50.1";
@@ -44,7 +46,11 @@ public class FileHandler {
         FTPClient ftpClient = null;
         try {
             ftpClient = FtpUtil.getConnectedClient(hostName, defaultPort, user, psw);
-            moveFilesToRemoteFtp(ftpClient, localDir, remoteDir, overrideExistingFiles);
+            String resolvedRemoteDir = FtpUtil.resolveRemoteBase(ftpClient, MOVIES_SUBPATH, remoteDir);
+            if (!resolvedRemoteDir.equals(remoteDir)) {
+                logger.info("Resolved remote dir to : " + resolvedRemoteDir);
+            }
+            moveFilesToRemoteFtp(ftpClient, localDir, resolvedRemoteDir, overrideExistingFiles);
         } catch (Exception ex) {
             logger.severe("Error: " + ex.getMessage());
             throw new RuntimeException("Error in getConnectedClient", ex);
@@ -173,7 +179,11 @@ public class FileHandler {
         FTPClient ftpClient = null;
         try {
             ftpClient = FtpUtil.getConnectedClient(hostName, defaultPort, user, psw);
-            FtpUtil.checkAndRenameFtpFilesInRootDir(rootPath, moviesExt, ftpClient);
+            String resolvedRoot = FtpUtil.resolveRemoteBase(ftpClient, MOVIES_SUBPATH, rootPath);
+            if (!resolvedRoot.equals(rootPath)) {
+                logger.info("Resolved remote dir to : " + resolvedRoot);
+            }
+            FtpUtil.checkAndRenameFtpFilesInRootDir(resolvedRoot, moviesExt, ftpClient);
         } catch (Exception ex) {
             logger.severe("Error: " + ex.getMessage());
             throw new RuntimeException("Error in renameFilesInFtp", ex);
