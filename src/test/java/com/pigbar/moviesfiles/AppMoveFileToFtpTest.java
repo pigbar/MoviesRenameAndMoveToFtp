@@ -2,9 +2,11 @@ package com.pigbar.moviesfiles;
 
 import com.pigbar.moviesfiles.utils.ContentCleaner;
 import com.pigbar.moviesfiles.utils.FileNameUtil;
+import com.pigbar.moviesfiles.utils.FtpUtil;
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
+import org.apache.commons.net.ftp.FTPClient;
 
 import java.io.File;
 
@@ -134,5 +136,13 @@ public class AppMoveFileToFtpTest
     public void testEmptyAndNull() {
         assertEquals("", ContentCleaner.cleanContent(""));
         assertNull(ContentCleaner.cleanContent(null));
+    }
+
+    /** An unreadable local file is skipped (returns false) instead of aborting the batch. */
+    public void testUploadFileMissingLocalReturnsFalse() {
+        // The missing-file path returns before the FTPClient is used, so an unconnected
+        // client is fine here.
+        FTPClient ftp = new FTPClient();
+        assertFalse(FtpUtil.uploadFile(ftp, "/remote/dir", new File("/no/such/file.mp4")));
     }
 }

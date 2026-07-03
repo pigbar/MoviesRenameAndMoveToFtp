@@ -8,6 +8,7 @@ import org.apache.commons.net.ftp.FTPReply;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigDecimal;
@@ -31,7 +32,16 @@ public class FtpUtil {
         boolean success = false;
         try {
             String remoteFile = remotePath + File.separator + localFile.getName();
-            FileInputStream inputStream = new FileInputStream(localFile);
+            FileInputStream inputStream;
+            try {
+                inputStream = new FileInputStream(localFile);
+            } catch (FileNotFoundException ex) {
+                // Unreadable local file (missing, or a name the JVM can't decode): skip it
+                // instead of aborting the whole batch. The caller keeps the local file.
+                logger.severe("Cannot read local file, skipping: " + localFile.getPath()
+                        + " (" + ex.getMessage() + ")");
+                return false;
+            }
             logger.info(String.format(START_UPLOADING_FILE, localFile.getName(), remotePath));
             OutputStream outputStream = ftpClient.storeFileStream(remoteFile);
             if (outputStream == null) {
